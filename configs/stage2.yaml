@@ -1,0 +1,3 @@
+stage: 2
+stage_name: stage2
+expected_features: 50

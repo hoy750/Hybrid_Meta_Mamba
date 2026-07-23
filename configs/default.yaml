@@ -1,0 +1,139 @@
+project:
+  name: Hybrid-Meta-Mamba
+  seed: 42
+
+data:
+  raw_csv: data/4阶段_2分类_88特征/student_course_v3_4s2c.csv
+  target: risk_2cls
+  datasets_dir: datasets
+  train_test_dir: datasets/splits
+  test_size: 0.2
+  validation_size: 0.2
+
+training:
+  n_splits: 5
+  batch_size: 32
+  threshold: 0.5
+  threshold_step: 0.01
+  device: auto
+
+# 9 个 baseline（覆盖论文表 1 的 5 大类共 9 种代表模型）
+base_learners:
+  - lr              # 线性模型
+  - svm             # 核方法
+  - knn             # 距离模型
+  - rf              # Bagging
+  - xgboost         # Boosting
+  - naive_bayes     # 概率模型
+  - mlp             # 神经网络
+  - tabnet          # 表格深度学习
+  - mamba           # 状态空间模型
+
+# 9 个 meta learner + 1 个 MetaMambaClassifier
+meta_learners:
+  - meta_mamba
+  - meta_lr
+  - meta_svm
+  - meta_knn
+  - meta_rf
+  - meta_naive_bayes
+  - meta_xgboost
+  - meta_mlp
+  - meta_tabnet
+  
+
+# 与 LEGACY_TOPK_BASE_MODELS 保持一致，按基线经验从强到弱。
+topk_order:
+  - xgb
+  - mamba
+  - mlp
+  - tabnet
+  - rf
+  - svm
+  - lr
+  - knn
+  - nb
+
+topk_values:
+  - 1
+  - 3
+  - 5
+  - 7
+  - 9
+
+hybrid_route:
+  stage1: mamba
+  stage2: mamba
+  stage3: meta_mamba
+  stage4: meta_mamba
+
+model_params:
+  lr:
+    max_iter: 10
+    class_weight: balanced
+  svm:
+    C: 0.5
+    kernel: rbf
+    gamma: scale
+    class_weight: balanced
+    probability: true
+  knn:
+    n_neighbors: 10
+    weights: distance
+    metric: minkowski
+    p: 2
+  naive_bayes:
+    var_smoothing: 1.0e-9
+  meta_xgboost:
+    max_depth: 3
+    learning_rate: 0.01
+    n_estimators: 100
+  rf:
+    n_estimators: 10
+    max_depth: 1
+    class_weight: balanced
+  xgboost:
+    max_depth: 1
+    learning_rate: 0.01
+    n_estimators: 100
+  mlp:
+    hidden_dims: [16, 16]
+    dropout: 0.4
+    epochs: 10
+    lr: 0.01
+  tabnet:
+    n_d: 1
+    n_a: 1
+    n_steps: 1
+    gamma: 0.5
+    max_epochs: 10
+  mamba:
+    hidden_dim: 128
+    state_dim: 128
+    conv_kernel: 2
+    expand: 4
+    head_dim: 64
+    ngroups: 1
+    chunk_size: 128
+    epochs: 100
+    lr: 0.001
+    weight_decay: 0.0001
+    require_mamba: false
+  meta_mamba:
+    hidden_dim: 128
+    state_dim: 128
+    conv_kernel: 2
+    expand: 4
+    head_dim: 64
+    ngroups: 1
+    chunk_size: 128
+    epochs: 100
+    lr: 0.001
+    weight_decay: 0.0001
+    loss: soft_f1
+    require_mamba: false
+
+outputs:
+  results_dir: results
+  figures_dir: figures
+  tables_dir: results/tables
